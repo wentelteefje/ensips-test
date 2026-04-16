@@ -1,0 +1,30 @@
+---
+description: Standard for off-chain ENS data storage using CCIP-Read
+contributors:
+  - wentelteefje
+ensip:
+  created: '2026-04-16'
+  status: draft
+---
+
+# ENSIP-X: Off-chain Data Storage
+
+## Abstract
+
+This ENSIP defines a standard for storing ENS record data off-chain while maintaining trustless verification through CCIP-Read (EIP-3668).
+
+## Motivation
+
+Storing all ENS records on-chain is expensive. Many use cases benefit from off-chain storage with on-chain verification, reducing costs while preserving security guarantees.
+
+## Specification
+
+Resolvers implementing off-chain storage MUST revert with `OffchainLookup` as defined in EIP-3668 when queried for records that are stored off-chain.
+
+## Rationale
+
+CCIP-Read provides a standardized callback mechanism that clients already support, making off-chain storage transparent to end users.
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
