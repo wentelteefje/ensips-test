@@ -1,0 +1,36 @@
+---
+description: A standardized method for ENS name expiry grace periods
+contributors:
+  - wentelteefje
+ensip:
+  created: '2026-04-16'
+  status: draft
+---
+
+# ENSIP-X: ENS Name Expiry Grace Periods
+
+## Abstract
+
+This ENSIP defines a standardized grace period mechanism for ENS name expirations, giving previous owners a window to renew before names become available for registration.
+
+## Motivation
+
+Currently, when an ENS name expires, it can be immediately registered by anyone. This creates a poor user experience for existing name holders who may miss renewal deadlines.
+
+## Specification
+
+A 90-day grace period SHALL be enforced after name expiration, during which only the previous owner may renew the name.
+
+### Grace Period States
+
+- **Active**: Name is registered and not expired
+- **Grace Period**: Name has expired but is within the 90-day grace window
+- **Available**: Grace period has elapsed, name is open for registration
+
+## Rationale
+
+The 90-day grace period balances the interests of existing name holders with the desire for names to eventually become available if truly abandoned.
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
