@@ -1,0 +1,94 @@
+---
+description: Gasless DNSSEC name imports using EIP-3668 off-chain verification
+contributors:
+  - nick.eth
+  - raffy.eth
+ensip:
+  created: '2026-04-16'
+  status: draft
+---
+
+# ENSIP-X: Gasless DNSSEC Name Imports
+
+## Abstract
+
+This ENSIP defines a mechanism for importing DNS names into ENS without requiring an on-chain transaction from the name owner. By leveraging EIP-3668 (CCIP-Read) and DNSSEC proofs, a third party can submit the cryptographic proof of DNS ownership on behalf of the name holder, enabling gasless onboarding of DNS names into the ENS namespace.
+
+## Motivation
+
+Importing a DNS name into ENS currently requires the DNS name owner to submit an on-chain transaction containing a DNSSEC proof. This creates friction for several reasons:
+
+1. The name owner must hold ETH to pay for gas.
+2. The name owner must interact with the Ethereum network directly.
+3. Bulk imports of many DNS names are prohibitively expensive.
+
+A gasless import mechanism would lower the barrier to entry for DNS name holders who want to use their existing names within ENS, particularly for organisations managing large DNS portfolios.
+
+## Specification
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 and RFC 8174.
+
+### Overview
+
+The gasless import system consists of three components:
+
+1. **DNSSEC Oracle** — An off-chain service that fetches and validates DNSSEC proofs for a given DNS name.
+2. **Import Resolver** — A smart contract implementing EIP-3668 that reverts with `OffchainLookup` when queried for an unimported DNS name, directing the client to the DNSSEC Oracle.
+3. **Proof Verifier** — An on-chain contract that validates the DNSSEC proof returned by the oracle and registers the name in ENS if valid.
+
+### Import Flow
+
+1. A client queries the Import Resolver for a DNS name that has not yet been imported into ENS.
+2. The resolver reverts with `OffchainLookup(sender, urls, callData, callbackFunction, extraData)`.
+3. The client fetches the DNSSEC proof from the oracle URL.
+4. The client calls the callback function on the resolver with the proof.
+5. The resolver forwards the proof to the Proof Verifier.
+6. If valid, the Proof Verifier registers the DNS name in ENS, setting the owner to the address specified in the DNS TXT record.
+
+### DNSSEC Proof Format
+
+The oracle MUST return a proof consisting of:
+
+- The complete DNSSEC chain from the root zone to the target name.
+- The TXT record containing the ENS address claim (`ENS1 <address>`).
+- All RRSIG records necessary to validate the chain.
+
+The proof MUST be encoded as ABI-encoded bytes suitable for on-chain verification.
+
+### TXT Record Format
+
+DNS name owners MUST set a TXT record on their domain with the following format:
+
+```
+ENS1 <ethereum-address>
+```
+
+Where `<ethereum-address>` is a checksummed Ethereum address (EIP-55) that will become the ENS owner of the imported name.
+
+### Security Requirements
+
+- The Proof Verifier MUST validate the complete DNSSEC chain up to a trusted root anchor.
+- The oracle MUST NOT cache proofs beyond the minimum TTL of any record in the chain.
+- The Import Resolver MUST verify that the callback data was requested by the original query to prevent replay attacks.
+
+## Rationale
+
+Using EIP-3668 for gasless imports is a natural fit because the pattern already exists in the ENS ecosystem for off-chain data resolution. The DNSSEC proof provides cryptographic assurance of DNS ownership without requiring the name owner to interact with Ethereum, while the on-chain verification ensures trustlessness.
+
+An alternative approach considered was a meta-transaction relay, but this would require the name owner to sign an Ethereum transaction (even if they do not pay gas), adding complexity and requiring wallet software. The DNSSEC-proof approach requires only DNS configuration, which DNS administrators are already familiar with.
+
+## Backwards Compatibility
+
+This ENSIP does not modify any existing ENS contracts or resolution behaviour. Names imported through the gasless mechanism are indistinguishable from names imported through the existing on-chain DNSSEC registrar once the import is complete.
+
+Clients that do not support EIP-3668 will not be able to trigger the gasless import flow, but will still be able to resolve names that have already been imported.
+
+## Security Considerations
+
+DNSSEC is only as secure as the DNS infrastructure. If a DNS name's DNSSEC chain is compromised (e.g., through a registrar breach), an attacker could import the name into ENS with an address they control. Name owners SHOULD monitor their ENS records after import and SHOULD use DNSSEC-capable registrars with strong security practices.
+
+The oracle service represents a potential point of centralisation. Implementations SHOULD support multiple oracle endpoints to mitigate this risk, and the on-chain Proof Verifier ensures that the oracle cannot fabricate invalid proofs.
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
