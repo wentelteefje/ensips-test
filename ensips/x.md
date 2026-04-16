@@ -1,0 +1,30 @@
+---
+description: Wildcard resolution for dynamic ENS subdomains
+contributors:
+  - wentelteefje
+ensip:
+  created: '2026-04-16'
+  status: draft
+---
+
+# ENSIP-X: Wildcard Resolution
+
+## Abstract
+
+This ENSIP defines a mechanism for wildcard resolution, allowing parent domains to dynamically resolve arbitrary subdomains without individual on-chain records.
+
+## Motivation
+
+Protocols that issue many subdomains (e.g., one per user) face prohibitive gas costs creating individual records. Wildcard resolution enables a single resolver to handle all subdomains.
+
+## Specification
+
+Resolvers MAY implement wildcard resolution by responding to queries for names that do not have explicit records, using the parent domain's resolver.
+
+## Rationale
+
+Wildcard resolution dramatically reduces the cost of managing large numbers of subdomains while maintaining compatibility with existing ENS infrastructure.
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
