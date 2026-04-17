@@ -1,0 +1,75 @@
+---
+description: Granular permission model for Name Wrapper fuses
+contributors:
+  - nick.eth
+  - jefflau.eth
+ensip:
+  created: '2026-04-17'
+  status: draft
+---
+
+# ENSIP-X: Granular Name Wrapper Permissions
+
+## Abstract
+
+This ENSIP extends the Name Wrapper's fuse mechanism with a granular permission model, allowing name owners to delegate specific management capabilities to third parties without surrendering full control of their name.
+
+## Motivation
+
+The current Name Wrapper fuse system operates on an all-or-nothing basis. Once a fuse is burned, the corresponding permission is irrevocably removed. This limits the flexibility of name management in scenarios where a name owner wants to delegate certain operations — such as setting records or creating subdomains — to a manager address while retaining the ability to revoke that delegation.
+
+A granular permission model would enable use cases such as:
+
+- Organisations delegating DNS record management to IT administrators
+- DAOs allowing multisigs to manage subdomains without risking name loss
+- Name leasing arrangements with limited operational permissions
+
+## Specification
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 and RFC 8174.
+
+### Permission Bitmap
+
+A new 256-bit permission bitmap is introduced, stored per (node, operator) pair in the Name Wrapper. Each bit corresponds to a specific management capability:
+
+| Bit | Permission | Description |
+|-----|-----------|-------------|
+| 0 | `SET_ADDR` | Set the default address record |
+| 1 | `SET_TEXT` | Set text records |
+| 2 | `SET_CONTENTHASH` | Set the content hash |
+| 3 | `CREATE_SUBDOMAIN` | Create new subdomains |
+| 4 | `DELETE_SUBDOMAIN` | Delete existing subdomains |
+| 5 | `SET_RESOLVER` | Change the resolver contract |
+| 6-255 | Reserved | Reserved for future use |
+
+### Interface
+
+```solidity
+interface IGranularPermissions {
+    function setPermissions(bytes32 node, address operator, uint256 permissions) external;
+    function getPermissions(bytes32 node, address operator) external view returns (uint256);
+    function hasPermission(bytes32 node, address operator, uint8 permission) external view returns (bool);
+}
+```
+
+### Permission Checks
+
+All Name Wrapper functions that modify name state MUST check the caller's permission bitmap before executing. If the caller is not the name owner, the corresponding permission bit MUST be set for the operation to succeed.
+
+## Rationale
+
+A bitmap-based permission model was chosen over a role-based model for gas efficiency and composability. Each permission check requires only a single bitwise AND operation, adding minimal overhead to existing Name Wrapper functions.
+
+## Backwards Compatibility
+
+This ENSIP extends the Name Wrapper contract and does not modify existing fuse behaviour. Names that have not opted into the granular permission system continue to operate exactly as before. The permission bitmap defaults to zero (no permissions) for all operators.
+
+## Security Considerations
+
+Name owners MUST carefully review permissions before granting them. The `SET_RESOLVER` permission is particularly sensitive, as a malicious resolver could return incorrect records. Implementations SHOULD display clear warnings when this permission is being granted.
+
+Permission grants SHOULD be revocable by the name owner at any time, unless the `CANNOT_REVOKE_PERMISSIONS` fuse has been explicitly burned.
+
+## Copyright
+
+Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
